@@ -90,7 +90,7 @@ class GitHubComprehensiveProfile(BaseModel):
     username: str = Field(..., description="GitHub username")
     profile: GitHubProfile = Field(..., description="User profile information")
     repositories: List[GitHubRepository] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="List of repositories"
     )
     languages: List[GitHubLanguage] = Field(

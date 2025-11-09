@@ -9,6 +9,7 @@ This feature integrates GitHub profile data into the resume upload and analysis 
 ### 1. Backend Implementation
 
 #### GitHub Service (`apps/backend/app/services/github_service.py`)
+
 A comprehensive service for fetching GitHub data using the GitHub REST API v3:
 
 - **User Profile**: Fetches public profile information including name, bio, location, followers, etc.
@@ -20,6 +21,7 @@ A comprehensive service for fetching GitHub data using the GitHub REST API v3:
 - **Error Handling**: Comprehensive error handling for network issues, API errors, and rate limits
 
 **Key Methods:**
+
 - `get_user_profile(username)` - Fetch user profile
 - `get_user_repositories(username, max_repos)` - Fetch repositories
 - `get_user_commits(username, repos)` - Fetch commit history
@@ -27,6 +29,7 @@ A comprehensive service for fetching GitHub data using the GitHub REST API v3:
 - `extract_skills_from_github(github_data)` - Extract skills for resume matching
 
 #### Updated Resume Service (`apps/backend/app/services/resume_service.py`)
+
 Enhanced to support GitHub data integration:
 
 - Accepts optional `github_username` parameter in `convert_and_store_resume()`
@@ -35,6 +38,7 @@ Enhanced to support GitHub data integration:
 - Passes GitHub data to skill profile creation
 
 #### Updated Resume Upload API (`apps/backend/app/api/router/v1/resume.py`)
+
 Modified to accept GitHub username:
 
 ```python
@@ -48,6 +52,7 @@ async def upload_resume(
 ```
 
 #### Configuration (`apps/backend/app/core/config.py`)
+
 Added GitHub token configuration:
 
 ```python
@@ -55,6 +60,7 @@ GITHUB_TOKEN: Optional[str] = None  # Optional for higher rate limits
 ```
 
 #### Pydantic Schemas
+
 Created comprehensive schemas in `apps/backend/app/schemas/pydantic/github_profile.py`:
 
 - `GitHubProfile` - User profile data
@@ -65,12 +71,14 @@ Created comprehensive schemas in `apps/backend/app/schemas/pydantic/github_profi
 - `GitHubSkillsExtraction` - Extracted skills for resume matching
 
 Updated resume preview schemas to include GitHub data:
+
 - Added `GitHubProfileSummary` to `ResumePreviewerModel`
 - Added `githubProfile` field to JSON schema
 
 ### 2. Frontend Implementation
 
 #### File Upload Component (`apps/frontend/components/common/file-upload.tsx`)
+
 Added GitHub username input:
 
 - Text input field for GitHub username (optional)
@@ -90,6 +98,7 @@ Added GitHub username input:
 ```
 
 #### Resume Display Component (`apps/frontend/components/dashboard/resume-component.tsx`)
+
 Enhanced to display GitHub data:
 
 - **GitHub Stats**: Shows total repos, stars, followers, recent commits
@@ -110,10 +119,12 @@ Beautiful dark-themed UI matching the existing design system.
 **POST** `/api/v1/resumes/upload?github_username={username}`
 
 **Parameters:**
+
 - `file`: Resume file (PDF/DOCX, max 2MB) - Required
 - `github_username`: GitHub username - Optional query parameter
 
 **Response:**
+
 ```json
 {
   "message": "File resume.pdf successfully processed as MD and stored in the DB",
@@ -143,10 +154,12 @@ Beautiful dark-themed UI matching the existing design system.
 ## GitHub API Rate Limits
 
 ### Without Token (Unauthenticated)
+
 - **60 requests per hour**
 - Suitable for light usage/testing
 
 ### With Token (Authenticated)
+
 - **5000 requests per hour**
 - Recommended for production
 
@@ -167,12 +180,14 @@ Beautiful dark-themed UI matching the existing design system.
 ## Configuration
 
 ### Backend (.env)
+
 ```bash
 # Optional GitHub Personal Access Token
 GITHUB_TOKEN=ghp_your_token_here
 ```
 
 ### Environment Variables
+
 All configuration is in `apps/backend/app/core/config.py`:
 
 ```python
@@ -183,11 +198,13 @@ class Settings(BaseSettings):
 ## Error Handling
 
 ### Backend
+
 - **GitHubAPIError**: Generic GitHub API errors
 - **GitHubRateLimitError**: Specific rate limit exceeded error
 - Graceful fallback: Resume upload succeeds even if GitHub fetch fails
 
 ### Frontend
+
 - User-friendly error messages
 - Optional field - form works without GitHub username
 - Clear indication of GitHub data availability
@@ -195,17 +212,20 @@ class Settings(BaseSettings):
 ## Security & Privacy
 
 ### Data Collection
+
 - Only **public** GitHub data is fetched
 - No private repositories or data
 - No authentication required from user
 - Follows GitHub's Terms of Service
 
 ### Data Storage
+
 - GitHub data stored in database alongside resume
 - No permanent API tokens stored
 - Rate limiting respected
 
 ### Best Practices
+
 - Use GitHub token for production (higher limits)
 - Cache GitHub data to reduce API calls
 - Handle rate limit errors gracefully
@@ -214,6 +234,7 @@ class Settings(BaseSettings):
 ## Usage Examples
 
 ### 1. Basic Usage (No GitHub)
+
 ```bash
 # Just upload resume
 curl -X POST http://localhost:8000/api/v1/resumes/upload \
@@ -221,6 +242,7 @@ curl -X POST http://localhost:8000/api/v1/resumes/upload \
 ```
 
 ### 2. With GitHub Profile
+
 ```bash
 # Upload resume + fetch GitHub data
 curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octocat" \
@@ -228,6 +250,7 @@ curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octoca
 ```
 
 ### 3. Frontend Usage
+
 1. Navigate to resume upload page
 2. Select resume file (PDF/DOCX)
 3. Enter GitHub username (optional)
@@ -237,13 +260,16 @@ curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octoca
 ## Testing
 
 ### Manual Testing
+
 1. Upload resume without GitHub username - should work normally
 2. Upload resume with valid GitHub username - should fetch and display data
 3. Upload resume with invalid GitHub username - should gracefully fail
 4. Test rate limiting - should handle 60 req/hour limit
 
 ### Test Accounts
+
 Use these public GitHub profiles for testing:
+
 - `octocat` - GitHub's official test account
 - `torvalds` - Linus Torvalds (Linux creator)
 - `gvanrossum` - Guido van Rossum (Python creator)
@@ -251,6 +277,7 @@ Use these public GitHub profiles for testing:
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. **Caching**: Cache GitHub data to reduce API calls
 2. **Webhooks**: Real-time updates when GitHub profile changes
 3. **Private Repos**: OAuth flow for private repository access
@@ -261,7 +288,9 @@ Use these public GitHub profiles for testing:
 8. **Skill Verification**: Cross-reference CV skills with GitHub activity
 
 ### Database Enhancements
+
 Consider adding dedicated tables:
+
 - `github_profiles` - Store GitHub profile data
 - `github_repositories` - Repository details
 - `github_commits` - Commit history
@@ -270,20 +299,26 @@ Consider adding dedicated tables:
 ## Troubleshooting
 
 ### Issue: GitHub data not showing
+
 **Solution:**
+
 - Check if GitHub username is correct
 - Verify GitHub profile is public
 - Check backend logs for API errors
 - Ensure httpx is installed: `pip install httpx`
 
 ### Issue: Rate limit exceeded
+
 **Solution:**
+
 - Add GitHub token to `.env` file
 - Wait for rate limit to reset (1 hour)
 - Use caching to reduce API calls
 
 ### Issue: Slow upload
+
 **Solution:**
+
 - GitHub API calls can take 2-5 seconds
 - Consider async processing
 - Add loading indicators in UI
@@ -292,9 +327,11 @@ Consider adding dedicated tables:
 ## API Documentation
 
 ### GitHub REST API v3
+
 Official documentation: https://docs.github.com/en/rest
 
 **Endpoints Used:**
+
 - `GET /users/{username}` - User profile
 - `GET /users/{username}/repos` - Repositories list
 - `GET /repos/{owner}/{repo}/languages` - Repository languages
@@ -302,6 +339,7 @@ Official documentation: https://docs.github.com/en/rest
 - `GET /users/{username}/events/public` - Public events
 
 ### Rate Limit Headers
+
 ```
 X-RateLimit-Limit: 60 (or 5000 with token)
 X-RateLimit-Remaining: 59
@@ -311,6 +349,7 @@ X-RateLimit-Reset: 1372700873
 ## Dependencies
 
 ### Backend (requirements.txt)
+
 ```
 httpx==0.28.1  # For GitHub API requests
 ```
@@ -318,6 +357,7 @@ httpx==0.28.1  # For GitHub API requests
 Already included in project requirements.
 
 ### No Additional Frontend Dependencies
+
 Uses existing React and Tailwind CSS.
 
 ## Architecture Diagram
@@ -362,6 +402,7 @@ This GitHub integration feature significantly enhances the resume analysis capab
 5. **Enabling comprehensive candidate assessment** beyond traditional CV data
 
 The implementation is:
+
 - ✅ **Optional** - Works with or without GitHub data
 - ✅ **Secure** - Only public data, proper error handling
 - ✅ **Scalable** - Rate limiting, async operations

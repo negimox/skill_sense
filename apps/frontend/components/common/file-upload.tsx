@@ -24,35 +24,35 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const API_RESUME_UPLOAD_URL = `${API_BASE_URL}/api/v1/resumes/upload`; // API endpoint
 
 export default function FileUpload() {
-	const maxSize = 2 * 1024 * 1024; // 2MB
+  const maxSize = 2 * 1024 * 1024; // 2MB
 
-	const [uploadFeedback, setUploadFeedback] = useState<{
-		type: 'success' | 'error';
-		message: string;
-	} | null>(null);
+  const [uploadFeedback, setUploadFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
-	const [githubUsername, setGithubUsername] = useState<string>('');
+  const [githubUsername, setGithubUsername] = useState<string>('');
 
-	const [
-		{ files, isDragging, errors: validationOrUploadErrors, isUploadingGlobal },
-		{
-			handleDragEnter,
-			handleDragLeave,
-			handleDragOver,
-			handleDrop,
-			openFileDialog,
-			removeFile,
-			getInputProps,
-			clearErrors,
-		},
-	] = useFileUpload({
-		maxSize,
-		accept: acceptString,
-		multiple: false,
-		uploadUrl: githubUsername 
-			? `${API_RESUME_UPLOAD_URL}?github_username=${encodeURIComponent(githubUsername)}`
-			: API_RESUME_UPLOAD_URL,
-		onUploadSuccess: (uploadedFile, response) => {
+  const [
+    { files, isDragging, errors: validationOrUploadErrors, isUploadingGlobal },
+    {
+      handleDragEnter,
+      handleDragLeave,
+      handleDragOver,
+      handleDrop,
+      openFileDialog,
+      removeFile,
+      getInputProps,
+      clearErrors,
+    },
+  ] = useFileUpload({
+    maxSize,
+    accept: acceptString,
+    multiple: false,
+    uploadUrl: githubUsername
+      ? `${API_RESUME_UPLOAD_URL}?github_username=${encodeURIComponent(githubUsername)}`
+      : API_RESUME_UPLOAD_URL,
+    onUploadSuccess: (uploadedFile, response) => {
       console.log('Upload successful:', uploadedFile, response);
       // uploadedFile.file is FileMetadata here, as transformed by the hook
       const data = response as Record<string, unknown> & { resume_id?: string };
@@ -127,7 +127,8 @@ export default function FileUpload() {
           className="w-full px-4 py-2 bg-gray-900/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <p className="mt-1 text-xs text-gray-500">
-          We'll fetch your GitHub profile, repositories, and contributions for a more comprehensive skills analysis.
+          We'll fetch your GitHub profile, repositories, and contributions for a more comprehensive
+          skills analysis.
         </p>
       </div>
 

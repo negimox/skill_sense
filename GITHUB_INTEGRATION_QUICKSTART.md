@@ -3,6 +3,7 @@
 ## 🚀 Quick Start (3 Steps)
 
 ### 1. Configuration (Optional)
+
 For higher API rate limits, add GitHub token to `.env`:
 
 ```bash
@@ -13,13 +14,16 @@ echo "GITHUB_TOKEN=ghp_your_token_here" >> .env
 **Get Token**: [GitHub Settings → Tokens](https://github.com/settings/tokens)
 
 ### 2. Dependencies
+
 Already included! No additional installation needed.
+
 - Backend: `httpx==0.28.1` (already in requirements.txt)
 - Frontend: No new dependencies
 
 ### 3. Usage
 
 #### Option A: With GitHub Username
+
 ```bash
 # Upload resume with GitHub profile
 curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octocat" \
@@ -27,6 +31,7 @@ curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octoca
 ```
 
 #### Option B: Without GitHub Username
+
 ```bash
 # Regular upload (works as before)
 curl -X POST http://localhost:8000/api/v1/resumes/upload \
@@ -43,6 +48,7 @@ curl -X POST http://localhost:8000/api/v1/resumes/upload \
 ## 🎨 What You'll See
 
 ### GitHub Profile Section
+
 - ✨ **Stats**: Total repos, stars, followers, recent commits
 - 🌈 **Languages**: Top programming languages as colorful badges
 - 📦 **Projects**: Notable repositories with stars and descriptions
@@ -50,20 +56,23 @@ curl -X POST http://localhost:8000/api/v1/resumes/upload \
 
 ## 🔧 Rate Limits
 
-| Type | Limit | How |
-|------|-------|-----|
-| **Without Token** | 60/hour | Default, no setup |
-| **With Token** | 5000/hour | Add `GITHUB_TOKEN` to `.env` |
+| Type              | Limit     | How                          |
+| ----------------- | --------- | ---------------------------- |
+| **Without Token** | 60/hour   | Default, no setup            |
+| **With Token**    | 5000/hour | Add `GITHUB_TOKEN` to `.env` |
 
 ## ✅ Testing
 
 ### Test Usernames
+
 Try these public GitHub profiles:
+
 - `octocat` - GitHub's official account
 - `torvalds` - Linus Torvalds (Linux)
 - `gvanrossum` - Guido van Rossum (Python)
 
 ### Test Command
+
 ```bash
 # Test with octocat
 curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octocat" \
@@ -73,33 +82,39 @@ curl -X POST "http://localhost:8000/api/v1/resumes/upload?github_username=octoca
 ## 📚 Full Documentation
 
 For complete details, see:
+
 - **[GITHUB_INTEGRATION.md](./GITHUB_INTEGRATION.md)** - Complete feature documentation
 - **[GITHUB_INTEGRATION_SUMMARY.md](./GITHUB_INTEGRATION_SUMMARY.md)** - Implementation summary
 
 ## 🐛 Troubleshooting
 
 ### Issue: GitHub data not showing
-**Fix**: 
+
+**Fix**:
+
 - Check username spelling
 - Ensure profile is public
 - Check backend logs
 
 ### Issue: Rate limit exceeded
-**Fix**: 
+
+**Fix**:
+
 - Add GitHub token to `.env`
 - Wait 1 hour for reset
 - Reduce requests
 
 ### Issue: Slow upload
+
 **Expected**: GitHub API calls add 2-5 seconds
 
 ## 🎯 Features
 
-✅ Optional - works with or without GitHub data  
-✅ Secure - only public data accessed  
-✅ Fast - async operations  
-✅ Beautiful - matches existing UI  
-✅ Smart - extracts skills automatically  
+✅ Optional - works with or without GitHub data
+✅ Secure - only public data accessed
+✅ Fast - async operations
+✅ Beautiful - matches existing UI
+✅ Smart - extracts skills automatically
 
 ## 📊 Data Collected (Public Only)
 

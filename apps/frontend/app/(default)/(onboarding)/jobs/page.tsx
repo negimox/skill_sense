@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 
 const ProvideJobDescriptionsPage = () => {
   return (
-    <BackgroundContainer innerClassName="items-stretch justify-start py-16">
+    <BackgroundContainer innerClassName="items-stretch justify-start py-16 overflow-y-auto">
       <div className="flex w-full max-w-7xl flex-col gap-10 mx-auto">
         <div className="flex flex-col items-center text-center gap-6">
           <h1 className="text-5xl sm:text-6xl font-bold text-white">Provide Job Description</h1>

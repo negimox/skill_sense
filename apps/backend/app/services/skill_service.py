@@ -386,9 +386,9 @@ class SkillExtractionService:
         }
 
     async def create_skill_profile(
-        self, 
-        resume_id: str, 
-        resume_text: str, 
+        self,
+        resume_id: str,
+        resume_text: str,
         processed_data: Optional[Dict] = None,
         github_data: Optional[Dict] = None
     ) -> str:
@@ -416,7 +416,7 @@ class SkillExtractionService:
 
         # Extract skills from resume
         skills = await self._extract_skills(resume_text, processed_data)
-        
+
         # Enhance skills with GitHub data if available
         if github_data:
             try:
@@ -518,40 +518,40 @@ class SkillExtractionService:
 
         skills_list.sort(key=lambda x: x.confidence, reverse=True)
         return skills_list
-    
+
     async def _extract_github_skills(self, github_data: Dict) -> List[SkillItem]:
         """
         Extract skills from GitHub data
-        
+
         Args:
             github_data: GitHub comprehensive profile data
-            
+
         Returns:
             List of SkillItem objects extracted from GitHub
         """
         from app.services import GitHubService
-        
+
         skills_dict: Dict[str, Dict] = {}
-        
+
         # Extract skills using the GitHub service's extractor
         github_service = GitHubService()
         extracted = github_service.extract_skills_from_github(github_data)
-        
+
         if not extracted:
             return []
-        
+
         # Process programming languages
         for lang_data in extracted.get("programming_languages", []):
             language = lang_data.get("language")
             proficiency = lang_data.get("proficiency", "Intermediate")
             percentage = lang_data.get("percentage", 0)
-            
+
             evidence = {
                 "source": "github",
                 "text": f"GitHub: {percentage:.1f}% of code, {proficiency} proficiency",
                 "href": extracted.get("github_url")
             }
-            
+
             skill_key = language.lower()
             if skill_key not in skills_dict:
                 skills_dict[skill_key] = {
@@ -561,7 +561,7 @@ class SkillExtractionService:
                 }
             else:
                 skills_dict[skill_key]["evidence"].append(evidence)
-        
+
         # Process technologies
         for tech in extracted.get("technologies", []):
             evidence = {
@@ -569,7 +569,7 @@ class SkillExtractionService:
                 "text": f"Used in GitHub projects",
                 "href": extracted.get("github_url")
             }
-            
+
             skill_key = tech.lower()
             if skill_key not in skills_dict:
                 skills_dict[skill_key] = {
@@ -579,7 +579,7 @@ class SkillExtractionService:
                 }
             else:
                 skills_dict[skill_key]["evidence"].append(evidence)
-        
+
         # Process project highlights for skills
         for project in extracted.get("project_highlights", [])[:5]:  # Top 5 projects
             if project.get("language"):
@@ -589,7 +589,7 @@ class SkillExtractionService:
                     "text": f"Project: {project['name']} ({project.get('stars', 0)} stars)",
                     "href": project.get("url")
                 }
-                
+
                 skill_key = language.lower()
                 if skill_key not in skills_dict:
                     skills_dict[skill_key] = {
@@ -599,17 +599,17 @@ class SkillExtractionService:
                     }
                 else:
                     skills_dict[skill_key]["evidence"].append(evidence)
-        
+
         # Convert to SkillItem objects
         skills_list = []
         for skill_key, skill_data in skills_dict.items():
             confidence = self._calculate_confidence(skill_data["evidence"])
-            
+
             mapping = self.taxonomy_mapper.get_mapping(skill_data["name"]) or self.taxonomy_mapper.get_mapping(skill_key)
             mapped_id = mapping.get("esco_id") if mapping else None
             category = mapping.get("category") if mapping else skill_data.get("category") or "technical"
             canonical_name = mapping.get("skill_name") if mapping else skill_data["name"]
-            
+
             skills_list.append(
                 SkillItem(
                     skill_id=str(uuid.uuid4()),
@@ -622,36 +622,36 @@ class SkillExtractionService:
                     tags=[],
                 )
             )
-        
+
         return skills_list
-    
+
     def _merge_skills(self, resume_skills: List[SkillItem], github_skills: List[SkillItem]) -> List[SkillItem]:
         """
         Merge skills from resume and GitHub, avoiding duplicates
-        
+
         Args:
             resume_skills: Skills extracted from resume
             github_skills: Skills extracted from GitHub
-            
+
         Returns:
             Merged list of unique skills
         """
         skills_dict: Dict[str, SkillItem] = {}
-        
+
         # Add all resume skills first
         for skill in resume_skills:
             key = skill.name.lower()
             skills_dict[key] = skill
-        
+
         # Merge GitHub skills
         for github_skill in github_skills:
             key = github_skill.name.lower()
-            
+
             if key in skills_dict:
                 # Skill exists, merge evidence
                 existing_skill = skills_dict[key]
                 merged_evidence = list(existing_skill.evidence) + list(github_skill.evidence)
-                
+
                 # Create updated skill with merged evidence
                 skills_dict[key] = SkillItem(
                     skill_id=existing_skill.skill_id,
@@ -666,7 +666,7 @@ class SkillExtractionService:
             else:
                 # New skill from GitHub
                 skills_dict[key] = github_skill
-        
+
         return list(skills_dict.values())
 
     def _iter_skill_strings(self, data) -> List[str]:

@@ -52,10 +52,10 @@ class ResumeService:
 
 
     async def convert_and_store_resume(
-        self, 
-        file_bytes: bytes, 
-        file_type: str, 
-        filename: str, 
+        self,
+        file_bytes: bytes,
+        file_type: str,
+        filename: str,
         content_type: str = "md",
         github_username: Optional[str] = None
     ):
@@ -235,17 +235,17 @@ class ResumeService:
     async def _fetch_github_data(self, github_username: str) -> Optional[Dict]:
         """
         Fetch comprehensive GitHub data for a user.
-        
+
         Args:
             github_username: GitHub username
-            
+
         Returns:
             Dictionary with GitHub profile data or None if fetch fails
         """
         try:
             from app.services import GitHubService
             from app.core import settings
-            
+
             github_service = GitHubService(github_token=settings.GITHUB_TOKEN)
             github_data = await github_service.get_comprehensive_profile(
                 username=github_username,
@@ -253,20 +253,20 @@ class ResumeService:
                 include_events=True,
                 max_repos=30
             )
-            
+
             return github_data if github_data else None
-            
+
         except Exception as e:
             logger.error(f"Failed to fetch GitHub data: {str(e)}")
             return None
-    
+
     async def _store_github_data(self, resume_id: str, github_data: Dict):
         """
         Store GitHub data associated with a resume.
-        
+
         This stores the GitHub data in the processed_resume table or creates
         a separate github_data JSON field.
-        
+
         Args:
             resume_id: Resume ID
             github_data: GitHub profile data dictionary
@@ -277,32 +277,32 @@ class ResumeService:
                 select(ProcessedResume).where(ProcessedResume.resume_id == resume_id)
             )
             processed_resume = result.scalar_one_or_none()
-            
+
             if processed_resume:
                 # Store GitHub data as JSON in a field
                 # For now, we'll add it to the extracted_keywords field or create new field
                 # In production, you might want a dedicated github_data column
                 github_json = json.dumps(github_data)
-                
+
                 # Update the record with GitHub data
                 # You can add a dedicated column to the model later
                 logger.info(f"Stored GitHub data for resume {resume_id}")
             else:
                 logger.warning(f"No ProcessedResume found for {resume_id}, cannot store GitHub data")
-                
+
         except Exception as e:
             logger.error(f"Failed to store GitHub data: {str(e)}")
 
     async def _create_skill_profile(
-        self, 
-        resume_id: str, 
-        resume_text: str, 
+        self,
+        resume_id: str,
+        resume_text: str,
         structured_data: Optional[Dict] = None,
         github_data: Optional[Dict] = None
     ):
         """
         Create skill profile from resume and optionally GitHub data.
-        
+
         Args:
             resume_id: Resume ID
             resume_text: Resume text content

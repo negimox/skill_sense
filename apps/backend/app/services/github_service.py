@@ -30,18 +30,18 @@ class GitHubRateLimitError(GitHubAPIError):
 class GitHubService:
     """
     Service for fetching GitHub user data including profile, repositories, and commits.
-    
+
     The GitHub REST API allows up to 60 requests per hour for unauthenticated requests
     and 5000 requests per hour for authenticated requests.
     """
-    
+
     BASE_URL = "https://api.github.com"
     API_VERSION = "2022-11-28"
-    
+
     def __init__(self, github_token: Optional[str] = None):
         """
         Initialize GitHub service.
-        
+
         Args:
             github_token: Optional GitHub personal access token for higher rate limits
         """
@@ -52,24 +52,24 @@ class GitHubService:
         }
         if github_token:
             self.headers["Authorization"] = f"Bearer {github_token}"
-    
+
     async def _make_request(
-        self, 
-        url: str, 
+        self,
+        url: str,
         params: Optional[Dict[str, Any]] = None,
         timeout: int = 10
     ) -> Dict[str, Any]:
         """
         Make HTTP request to GitHub API with error handling.
-        
+
         Args:
             url: API endpoint URL
             params: Optional query parameters
             timeout: Request timeout in seconds
-            
+
         Returns:
             JSON response as dictionary
-            
+
         Raises:
             GitHubAPIError: If request fails
             GitHubRateLimitError: If rate limit exceeded
@@ -83,31 +83,31 @@ class GitHubService:
                     timeout=timeout,
                     follow_redirects=True
                 )
-                
+
                 # Check rate limit
                 remaining = response.headers.get("X-RateLimit-Remaining")
                 if remaining and int(remaining) < 10:
                     logger.warning(
                         f"GitHub API rate limit low: {remaining} requests remaining"
                     )
-                
+
                 if response.status_code == 403 and "rate limit" in response.text.lower():
                     raise GitHubRateLimitError(
                         "GitHub API rate limit exceeded. Please try again later or provide a GitHub token."
                     )
-                
+
                 if response.status_code == 404:
                     logger.warning(f"GitHub resource not found: {url}")
                     return {}
-                
+
                 # Handle 409 Conflict (e.g., empty repository)
                 if response.status_code == 409:
                     logger.warning(f"GitHub resource conflict (possibly empty repo): {url}")
                     return {}
-                
+
                 response.raise_for_status()
                 return response.json()
-                
+
         except httpx.HTTPStatusError as e:
             logger.error(f"GitHub API HTTP error: {e.response.status_code} - {e.response.text}")
             raise GitHubAPIError(f"GitHub API request failed: {str(e)}")
@@ -117,17 +117,17 @@ class GitHubService:
         except Exception as e:
             logger.error(f"Unexpected error in GitHub API request: {str(e)}")
             raise GitHubAPIError(f"Unexpected error: {str(e)}")
-    
+
     async def get_user_profile(self, username: str) -> Dict[str, Any]:
         """
         Fetch public user profile information.
-        
+
         Endpoint: GET /users/{username}
         Docs: https://docs.github.com/en/rest/users/users#get-a-user
-        
+
         Args:
             username: GitHub username
-            
+
         Returns:
             User profile data including:
             - login, name, bio
@@ -137,13 +137,13 @@ class GitHubService:
         """
         url = f"{self.BASE_URL}/users/{username}"
         logger.info(f"Fetching GitHub profile for user: {username}")
-        
+
         try:
             data = await self._make_request(url)
             if not data:
                 logger.warning(f"No profile data found for user: {username}")
                 return {}
-            
+
             return {
                 "login": data.get("login"),
                 "name": data.get("name"),
@@ -166,26 +166,26 @@ class GitHubService:
         except GitHubAPIError as e:
             logger.error(f"Failed to fetch GitHub profile for {username}: {str(e)}")
             return {}
-    
+
     async def get_user_repositories(
-        self, 
-        username: str, 
+        self,
+        username: str,
         max_repos: int = 100,
         sort: str = "updated",
         direction: str = "desc"
     ) -> List[Dict[str, Any]]:
         """
         Fetch user's public repositories.
-        
+
         Endpoint: GET /users/{username}/repos
         Docs: https://docs.github.com/en/rest/repos/repos#list-repositories-for-a-user
-        
+
         Args:
             username: GitHub username
             max_repos: Maximum number of repositories to fetch (default: 100)
             sort: Sort by 'created', 'updated', 'pushed', 'full_name' (default: 'updated')
             direction: Sort direction 'asc' or 'desc' (default: 'desc')
-            
+
         Returns:
             List of repository data including:
             - name, description, language
@@ -194,11 +194,11 @@ class GitHubService:
         """
         url = f"{self.BASE_URL}/users/{username}/repos"
         logger.info(f"Fetching repositories for user: {username}")
-        
+
         repos = []
         page = 1
         per_page = min(100, max_repos)  # GitHub API max per_page is 100
-        
+
         try:
             while len(repos) < max_repos:
                 params = {
@@ -208,16 +208,16 @@ class GitHubService:
                     "page": page,
                     "type": "owner"  # Only repos owned by the user
                 }
-                
+
                 data = await self._make_request(url, params=params)
-                
+
                 if not data or len(data) == 0:
                     break
-                
+
                 for repo in data:
                     if len(repos) >= max_repos:
                         break
-                    
+
                     repos.append({
                         "name": repo.get("name"),
                         "full_name": repo.get("full_name"),
@@ -238,45 +238,45 @@ class GitHubService:
                         "has_pages": repo.get("has_pages", False),
                         "license": repo.get("license", {}).get("name") if repo.get("license") else None,
                     })
-                
+
                 # If we received fewer than per_page, we've reached the end
                 if len(data) < per_page:
                     break
-                
+
                 page += 1
-            
+
             logger.info(f"Fetched {len(repos)} repositories for user: {username}")
             return repos
-            
+
         except GitHubAPIError as e:
             logger.error(f"Failed to fetch repositories for {username}: {str(e)}")
             return []
-    
+
     async def get_repository_languages(self, owner: str, repo: str) -> Dict[str, int]:
         """
         Fetch languages used in a repository.
-        
+
         Endpoint: GET /repos/{owner}/{repo}/languages
         Docs: https://docs.github.com/en/rest/repos/repos#list-repository-languages
-        
+
         Args:
             owner: Repository owner username
             repo: Repository name
-            
+
         Returns:
             Dictionary mapping language names to bytes of code
         """
         url = f"{self.BASE_URL}/repos/{owner}/{repo}/languages"
-        
+
         try:
             data = await self._make_request(url)
             return data if data else {}
         except GitHubAPIError as e:
             logger.error(f"Failed to fetch languages for {owner}/{repo}: {str(e)}")
             return {}
-    
+
     async def get_user_commits(
-        self, 
+        self,
         username: str,
         repos: List[Dict[str, Any]],
         max_commits_per_repo: int = 50,
@@ -284,16 +284,16 @@ class GitHubService:
     ) -> List[Dict[str, Any]]:
         """
         Fetch recent commits by the user across their repositories.
-        
+
         Endpoint: GET /repos/{owner}/{repo}/commits
         Docs: https://docs.github.com/en/rest/commits/commits#list-commits
-        
+
         Args:
             username: GitHub username
             repos: List of repository dictionaries
             max_commits_per_repo: Maximum commits to fetch per repository
             since_days: Only fetch commits from last N days
-            
+
         Returns:
             List of commit data including:
             - sha, message, author
@@ -301,9 +301,9 @@ class GitHubService:
         """
         since_date = (datetime.now() - timedelta(days=since_days)).isoformat()
         all_commits = []
-        
+
         logger.info(f"Fetching commits for user: {username} across {len(repos)} repositories")
-        
+
         for repo in repos[:20]:  # Limit to top 20 repos to avoid rate limits
             try:
                 url = f"{self.BASE_URL}/repos/{repo['full_name']}/commits"
@@ -312,12 +312,12 @@ class GitHubService:
                     "since": since_date,
                     "per_page": min(100, max_commits_per_repo),
                 }
-                
+
                 data = await self._make_request(url, params=params)
-                
+
                 if not data:
                     continue
-                
+
                 for commit in data[:max_commits_per_repo]:
                     commit_info = commit.get("commit", {})
                     all_commits.append({
@@ -329,32 +329,32 @@ class GitHubService:
                         "repository_url": repo["html_url"],
                         "html_url": commit.get("html_url"),
                     })
-                
+
                 # Small delay to avoid rate limiting
                 await asyncio.sleep(0.1)
-                
+
             except GitHubAPIError as e:
                 logger.warning(f"Failed to fetch commits for repo {repo['name']}: {str(e)}")
                 continue
-        
+
         logger.info(f"Fetched {len(all_commits)} commits for user: {username}")
         return all_commits
-    
+
     async def get_user_events(
-        self, 
+        self,
         username: str,
         max_events: int = 100
     ) -> List[Dict[str, Any]]:
         """
         Fetch recent public events/activity for a user.
-        
+
         Endpoint: GET /users/{username}/events/public
         Docs: https://docs.github.com/en/rest/activity/events#list-public-events-for-a-user
-        
+
         Args:
             username: GitHub username
             max_events: Maximum number of events to fetch
-            
+
         Returns:
             List of event data including:
             - type (PushEvent, CreateEvent, etc.)
@@ -362,27 +362,27 @@ class GitHubService:
         """
         url = f"{self.BASE_URL}/users/{username}/events/public"
         logger.info(f"Fetching recent events for user: {username}")
-        
+
         events = []
         page = 1
         per_page = min(100, max_events)
-        
+
         try:
             while len(events) < max_events:
                 params = {
                     "per_page": per_page,
                     "page": page,
                 }
-                
+
                 data = await self._make_request(url, params=params)
-                
+
                 if not data or len(data) == 0:
                     break
-                
+
                 for event in data:
                     if len(events) >= max_events:
                         break
-                    
+
                     events.append({
                         "id": event.get("id"),
                         "type": event.get("type"),
@@ -390,21 +390,21 @@ class GitHubService:
                         "created_at": event.get("created_at"),
                         "payload": event.get("payload"),
                     })
-                
+
                 if len(data) < per_page:
                     break
-                
+
                 page += 1
-            
+
             logger.info(f"Fetched {len(events)} events for user: {username}")
             return events
-            
+
         except GitHubAPIError as e:
             logger.error(f"Failed to fetch events for {username}: {str(e)}")
             return []
-    
+
     async def get_comprehensive_profile(
-        self, 
+        self,
         username: str,
         include_commits: bool = True,
         include_events: bool = True,
@@ -412,15 +412,15 @@ class GitHubService:
     ) -> Dict[str, Any]:
         """
         Fetch comprehensive GitHub profile data including all relevant information.
-        
+
         This is the main method to use for aggregating GitHub data for resume matching.
-        
+
         Args:
             username: GitHub username
             include_commits: Whether to fetch commit history (default: True)
             include_events: Whether to fetch recent events (default: True)
             max_repos: Maximum number of repositories to analyze
-            
+
         Returns:
             Comprehensive profile dictionary with:
             - profile: Basic user information
@@ -431,24 +431,24 @@ class GitHubService:
             - statistics: Derived statistics for resume matching
         """
         logger.info(f"Fetching comprehensive GitHub profile for: {username}")
-        
+
         try:
             # Fetch profile and repositories in parallel
             profile, repos = await asyncio.gather(
                 self.get_user_profile(username),
                 self.get_user_repositories(username, max_repos=max_repos)
             )
-            
+
             if not profile:
                 logger.error(f"Could not fetch profile for username: {username}")
                 return {}
-            
+
             # Aggregate languages from repositories
             languages_data = {}
             for repo in repos[:20]:  # Analyze top 20 repos for languages
                 try:
                     repo_langs = await self.get_repository_languages(
-                        profile["login"], 
+                        profile["login"],
                         repo["name"]
                     )
                     for lang, bytes_count in repo_langs.items():
@@ -456,7 +456,7 @@ class GitHubService:
                     await asyncio.sleep(0.1)  # Rate limit protection
                 except Exception as e:
                     logger.warning(f"Failed to fetch languages for repo {repo['name']}: {str(e)}")
-            
+
             # Calculate language percentages
             total_bytes = sum(languages_data.values())
             languages = [
@@ -466,33 +466,33 @@ class GitHubService:
                     "percentage": round((bytes_count / total_bytes * 100), 2) if total_bytes > 0 else 0
                 }
                 for lang, bytes_count in sorted(
-                    languages_data.items(), 
-                    key=lambda x: x[1], 
+                    languages_data.items(),
+                    key=lambda x: x[1],
                     reverse=True
                 )
             ]
-            
+
             # Fetch commits and events if requested
             commits = []
             events = []
-            
+
             if include_commits and repos:
                 commits = await self.get_user_commits(username, repos)
-            
+
             if include_events:
                 events = await self.get_user_events(username)
-            
+
             # Calculate statistics for resume matching
             total_stars = sum(repo.get("stargazers_count", 0) for repo in repos)
             total_forks = sum(repo.get("forks_count", 0) for repo in repos)
-            
+
             # Get top repositories by stars
             top_repos = sorted(
-                repos, 
-                key=lambda x: x.get("stargazers_count", 0), 
+                repos,
+                key=lambda x: x.get("stargazers_count", 0),
                 reverse=True
             )[:5]
-            
+
             # Analyze commit patterns
             commit_dates = [commit["date"] for commit in commits if commit.get("date")]
             recent_commit_count = 0
@@ -507,7 +507,7 @@ class GitHubService:
                                 recent_commit_count += 1
                         except Exception:
                             continue
-            
+
             result = {
                 "username": username,
                 "profile": profile,
@@ -528,14 +528,14 @@ class GitHubService:
                 },
                 "fetched_at": datetime.now().isoformat(),
             }
-            
+
             logger.info(f"Successfully fetched comprehensive profile for: {username}")
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to fetch comprehensive profile for {username}: {str(e)}")
             return {}
-    
+
     @staticmethod
     def _calculate_account_age(created_at: Optional[str]) -> Optional[int]:
         """Calculate account age in days"""
@@ -547,14 +547,14 @@ class GitHubService:
             return age
         except Exception:
             return None
-    
+
     def extract_skills_from_github(self, github_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extract skill-related information from GitHub data for resume matching.
-        
+
         Args:
             github_data: Comprehensive GitHub profile data
-            
+
         Returns:
             Dictionary with extracted skills and evidence:
             - programming_languages: List of languages with proficiency indicators
@@ -564,21 +564,21 @@ class GitHubService:
         """
         if not github_data or not github_data.get("profile"):
             return {}
-        
+
         # Extract programming languages
         languages = github_data.get("languages", [])
         programming_languages = [
             {
                 "language": lang["name"],
-                "proficiency": "Advanced" if lang["percentage"] > 30 
-                              else "Intermediate" if lang["percentage"] > 10 
+                "proficiency": "Advanced" if lang["percentage"] > 30
+                              else "Intermediate" if lang["percentage"] > 10
                               else "Familiar",
                 "percentage": lang["percentage"],
                 "evidence": f"{lang['bytes']} bytes of code"
             }
             for lang in languages[:10]
         ]
-        
+
         # Extract project highlights
         repos = github_data.get("repositories", [])
         project_highlights = [
@@ -594,25 +594,25 @@ class GitHubService:
             for repo in repos[:10]
             if not repo.get("is_fork")  # Exclude forked repos
         ]
-        
+
         # Extract technologies from repo topics and descriptions
         technologies = set()
         for repo in repos:
             # Add topics as technologies
             topics = repo.get("topics", [])
             technologies.update(topics)
-            
+
             # Parse description for common tech keywords
             desc = (repo.get("description") or "").lower()
             tech_keywords = [
-                "react", "vue", "angular", "node", "django", "flask", 
+                "react", "vue", "angular", "node", "django", "flask",
                 "docker", "kubernetes", "aws", "azure", "gcp", "tensorflow",
                 "pytorch", "machine learning", "ai", "blockchain", "web3"
             ]
             for keyword in tech_keywords:
                 if keyword in desc:
                     technologies.add(keyword)
-        
+
         # Calculate activity metrics
         stats = github_data.get("statistics", {})
         activity_metrics = {
@@ -624,7 +624,7 @@ class GitHubService:
             "followers": github_data.get("profile", {}).get("followers", 0),
             "account_age_days": stats.get("account_age_days", 0),
         }
-        
+
         return {
             "programming_languages": programming_languages,
             "technologies": sorted(list(technologies)),
